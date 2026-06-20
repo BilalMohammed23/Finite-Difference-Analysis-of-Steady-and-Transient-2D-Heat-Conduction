@@ -148,35 +148,35 @@ and $H$, $V$ are the sum of neighbouring values at the new time level $n+1$ (or 
 All solvers iterate until the convergence criterion is met (see Section 9). The key difference between them is **which values of $T$ are used for the neighbouring nodes** during the update sweep.
 
 ### 7.1 Jacobi Method
-
+ 
 Uses exclusively **old iteration** values for all neighbours. The entire field is updated simultaneously — the new value at $(i,j)$ uses only $T^{(k)}$ (the previous iterate) for all neighbours:
-
+ 
 **Steady state:**
 $$T_{i,j}^{(k+1)} = \frac{1}{k \Delta x^2}\left(T_{i-1,j}^{(k)} + T_{i+1,j}^{(k)}\right) + \frac{1}{k \Delta y^2}\left(T_{i,j+1}^{(k)} + T_{i,j-1}^{(k)}\right)$$
-
+ 
 **Transient (implicit):**
 $$T_{i,j}^{(k+1)} = \text{term}_1 \cdot T_{\text{initial}} + \text{term}_2 \cdot \left(T_{i-1,j}^{(k)} + T_{i+1,j}^{(k)}\right) + \text{term}_3 \cdot \left(T_{i,j-1}^{(k)} + T_{i,j+1}^{(k)}\right)$$
-
+ 
 > Jacobi converges more slowly because it never uses updated neighbours within the same sweep. It requires more iterations than Gauss–Seidel but is straightforwardly parallelisable.
-
+ 
 **Implemented in:** `steady_jac.m`, `transient_jac.m`
-
+ 
 ---
-
+ 
 ### 7.2 Gauss–Seidel Method
-
+ 
 Uses **immediately updated** values as they become available within the same sweep. When computing $T_{i,j}$, the neighbours $T_{i-1,j}$ and $T_{i,j-1}$ (already updated in the current sweep) are used directly:
-
+ 
 **Steady state:**
 $$T_{i,j}^{(k+1)} = \frac{1}{k \Delta x^2}\left(T_{i-1,j}^{(k+1)} + T_{i+1,j}^{(k)}\right) + \frac{1}{k \Delta y^2}\left(T_{i,j+1}^{(k)} + T_{i,j-1}^{(k+1)}\right)$$
-
+ 
 **Transient (implicit):**
 $$T_{i,j}^{(k+1)} = \text{term}_1 \cdot T_{\text{initial}} + \text{term}_2 \cdot \left(T_{i-1,j}^{(k+1)} + T_{i+1,j}^{(k)}\right) + \text{term}_3 \cdot \left(T_{i,j-1}^{(k+1)} + T_{i,j+1}^{(k)}\right)$$
-
+ 
 > Gauss–Seidel typically converges in roughly half the iterations of Jacobi because in-sweep updates propagate information faster. The in-place update is visible in the code: `T(i-1,j)` and `T(i,j-1)` already hold the new-iterate values when the $(i,j)$ update is computed.
-
+ 
 **Implemented in:** `steady_gauss.m`, `transient_gauss.m`
-
+ 
 ---
 
 ## 8. Successive Over-Relaxation (SOR)
