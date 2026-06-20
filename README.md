@@ -83,7 +83,7 @@ $$\frac{T_{i-1,j} - 2T_{i,j} + T_{i+1,j}}{\Delta x^2} + \frac{T_{i,j-1} - 2T_{i,
 
 Solving for $T_{i,j}$:
 
-$$\boxed{T_{i,j} = \frac{1}{k \Delta x^2}\left(T_{i-1,j} + T_{i+1,j}\right) + \frac{1}{k \Delta y^2}\left(T_{i,j-1} + T_{i,j+1}\right)}$$
+$$T_{i,j} = \frac{1}{k \Delta x^2}\left(T_{i-1,j} + T_{i+1,j}\right) + \frac{1}{k \Delta y^2}\left(T_{i,j-1} + T_{i,j+1}\right)$$
 
 where the coefficient $k$ is:
 
@@ -101,7 +101,11 @@ $$\frac{T_{i,j}^{n+1} - T_{i,j}^n}{\Delta t} = \alpha \left[\frac{T_{i-1,j}^n - 
 
 Solving for $T_{i,j}^{n+1}$:
 
-$$\boxed{T_{i,j}^{n+1} = T_{i,j}^n + k_1 \underbrace{\left(T_{i-1,j}^n - 2T_{i,j}^n + T_{i+1,j}^n\right)}_{H} + k_2 \underbrace{\left(T_{i,j-1}^n - 2T_{i,j}^n + T_{i,j+1}^n\right)}_{V}}$$
+$$T_{i,j}^{n+1} = T_{i,j}^n + k_1 H + k_2 V$$
+
+where $H$ and $V$ are the discrete second-difference stencils:
+
+$$H = T_{i-1,j}^n - 2T_{i,j}^n + T_{i+1,j}^n, \qquad V = T_{i,j-1}^n - 2T_{i,j}^n + T_{i,j+1}^n$$
 
 where:
 
@@ -127,15 +131,19 @@ $$\frac{T_{i,j}^{n+1} - T_{i,j}^n}{\Delta t} = \alpha \left[\frac{T_{i-1,j}^{n+1
 
 Collecting all $n+1$ terms to the left and rearranging:
 
-$$T_{i,j}^{n+1}\underbrace{\left(1 + 2k_1 + 2k_2\right)}_{1/\text{term}_1} = T_{i,j}^n + k_1\left(T_{i-1,j}^{n+1} + T_{i+1,j}^{n+1}\right) + k_2\left(T_{i,j-1}^{n+1} + T_{i,j+1}^{n+1}\right)$$
+$$T_{i,j}^{n+1}\left(1 + 2k_1 + 2k_2\right) = T_{i,j}^n + k_1\left(T_{i-1,j}^{n+1} + T_{i+1,j}^{n+1}\right) + k_2\left(T_{i,j-1}^{n+1} + T_{i,j+1}^{n+1}\right)$$
 
 Solving for $T_{i,j}^{n+1}$:
 
-$$\boxed{T_{i,j}^{n+1} = \underbrace{\frac{1}{1 + 2k_1 + 2k_2}}_{\text{term}_1} \cdot T_{i,j}^n + \underbrace{\frac{k_1}{1 + 2k_1 + 2k_2}}_{\text{term}_2} \cdot H + \underbrace{\frac{k_2}{1 + 2k_1 + 2k_2}}_{\text{term}_3} \cdot V}$$
+$$T_{i,j}^{n+1} = \text{term}_1 \cdot T_{i,j}^n + \text{term}_2 \cdot H + \text{term}_3 \cdot V$$
 
 where:
 
-$$\text{term}_1 = \frac{1}{1 + 2k_1 + 2k_2}, \quad \text{term}_2 = k_1 \cdot \text{term}_1, \quad \text{term}_3 = k_2 \cdot \text{term}_1$$
+$$\text{term}_1 = \frac{1}{1 + 2k_1 + 2k_2}$$
+
+$$\text{term}_2 = k_1 \cdot \text{term}_1$$
+
+$$\text{term}_3 = k_2 \cdot \text{term}_1$$
 
 and $H$, $V$ are the sum of neighbouring values at the new time level $n+1$ (or old level $n$ depending on the solver variant). Since $T^{n+1}$ appears on both sides, this requires an iterative solve at each time step — which is where the Jacobi/Gauss–Seidel/SOR solvers come in.
 
@@ -152,9 +160,11 @@ All solvers iterate until the convergence criterion is met (see Section 9). The 
 Uses exclusively **old iteration** values for all neighbours. The entire field is updated simultaneously — the new value at $(i,j)$ uses only $T^{(k)}$ (the previous iterate) for all neighbours:
 
 **Steady state:**
+
 $$T_{i,j}^{(k+1)} = \frac{1}{k \Delta x^2}\left(T_{i-1,j}^{(k)} + T_{i+1,j}^{(k)}\right) + \frac{1}{k \Delta y^2}\left(T_{i,j+1}^{(k)} + T_{i,j-1}^{(k)}\right)$$
 
 **Transient (implicit):**
+
 $$T_{i,j}^{(k+1)} = \text{term}_1 \cdot T_{\text{initial}} + \text{term}_2 \cdot \left(T_{i-1,j}^{(k)} + T_{i+1,j}^{(k)}\right) + \text{term}_3 \cdot \left(T_{i,j-1}^{(k)} + T_{i,j+1}^{(k)}\right)$$
 
 > Jacobi converges more slowly because it never uses updated neighbours within the same sweep. It requires more iterations than Gauss–Seidel but is straightforwardly parallelisable.
@@ -168,9 +178,11 @@ $$T_{i,j}^{(k+1)} = \text{term}_1 \cdot T_{\text{initial}} + \text{term}_2 \cdot
 Uses **immediately updated** values as they become available within the same sweep. When computing $T_{i,j}$, the neighbours $T_{i-1,j}$ and $T_{i,j-1}$ (already updated in the current sweep) are used directly:
 
 **Steady state:**
+
 $$T_{i,j}^{(k+1)} = \frac{1}{k \Delta x^2}\left(T_{i-1,j}^{(k+1)} + T_{i+1,j}^{(k)}\right) + \frac{1}{k \Delta y^2}\left(T_{i,j+1}^{(k)} + T_{i,j-1}^{(k+1)}\right)$$
 
 **Transient (implicit):**
+
 $$T_{i,j}^{(k+1)} = \text{term}_1 \cdot T_{\text{initial}} + \text{term}_2 \cdot \left(T_{i-1,j}^{(k+1)} + T_{i+1,j}^{(k)}\right) + \text{term}_3 \cdot \left(T_{i,j-1}^{(k+1)} + T_{i,j+1}^{(k)}\right)$$
 
 > Gauss–Seidel typically converges in roughly half the iterations of Jacobi because in-sweep updates propagate information faster. The in-place update is visible in the code: `T(i-1,j)` and `T(i,j-1)` already hold the new-iterate values when the $(i,j)$ update is computed.
